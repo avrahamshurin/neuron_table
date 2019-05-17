@@ -1,7 +1,7 @@
 from tkinter import *
 from pathlib import Path
-from slide import Slide
-from gif import Gif
+from src.slide import Slide
+from src.gif import Gif
 
 
 class NeuronWindow(Frame):
@@ -66,31 +66,28 @@ class NeuronWindow(Frame):
             for j in range(self.SLIDES[1][1]):
                 self.gifs.append(Gif(str(self.GIF_PATH).format(i, j)))
 
-        self.l = Label(self.neuron_canvas, bg='black', image=self.gifs[0].frames[0])
-        self.l.pack()
-
-        # self.gif_slides = [self.slides[i].value.get() for i in range(len(self.SLIDES))]
         self.playing = False
-        self.idx = 0
+        self.current_gif_frame = 0
+        self.current_gif = self.gifs[self.current_gif_frame]
+        self.gif_label = Label(self.neuron_canvas, bg='black', image=self.current_gif.frames[0])
+        self.gif_label.pack()
 
     def button_operation(self):
         if self.playing:
             return
+        self.current_gif = self.gifs[self.slides[1].value.get() + self.slides[0].value.get() * self.SLIDES[1][1]]
         self.play()
 
     def play(self):
         self.playing = True
-        num = self.slides[1].value.get() + self.slides[0].value.get() * self.SLIDES[1][1]
-        the_gif = self.gifs[num]
+        self.gif_label.config(image=self.current_gif.frames[self.current_gif_frame])
 
-        self.l.config(image=the_gif.frames[self.idx])
-
-        self.idx += 1
-        if self.idx == len(the_gif.frames):
+        self.current_gif_frame += 1
+        if self.current_gif_frame == len(self.current_gif.frames):
+            self.current_gif_frame = 0
             self.playing = False
-            self.idx = 0
         else:
-            self.after(the_gif.delay, self.play)
+            self.after(self.current_gif.delay, self.play)
 
 
 def main():
