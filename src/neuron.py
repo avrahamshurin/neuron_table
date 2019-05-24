@@ -1,36 +1,70 @@
 from tkinter import *
 from pathlib import Path
 from src.slide import Slide
-from src.gif import Gif
+from src.gif import Gif, GifPlayer
 
 
-class NeuronWindow(Frame):
+class ControlsWindow(Toplevel):
+
     RES_PATH = Path(r'../res')
     NEURON_IMG_PATH = RES_PATH / 'neuron' / 'neuron_{}_{}.png'
-    GRAPH_IMG_PATH = RES_PATH / 'graph' / 'graph_{}_{}.png'
     GIF_PATH = RES_PATH / 'gifs' / 'gif_{}_{}.gif'
     SLIDES = [['Desire:', 4], ['Fear:', 3]]
     PADS = {'padx': 5, 'pady': 5}
-    NEURON_SIZE = 448
+    LEFT_OFFSET = 10
 
-    def load_images(self):
-        self.neuron_canvas.create_line(0, 0, self.NEURON_SIZE, self.NEURON_SIZE, fill='white')
-        self.neuron_canvas.create_line(0, self.NEURON_SIZE, self.NEURON_SIZE, 0, fill='white')
+    def __init__(self, master=None, cnf={}, **kw):
+        # save reference to neuron window
+        self.neuron = kw.pop('neuron')
+        Toplevel.__init__(self, master, cnf, **kw)
+        self.geometry("+{}+{}".format(self.neuron.DISPLAY_SIZE - self.LEFT_OFFSET, 0))
+        self.bind("<Destroy>", self.neuron.exit)
+        self.title('Neuron V1.0.0')
 
-        try:
-            slides = [self.slides[i].value.get() for i in range(len(self.SLIDES))]
-            # self.image = PhotoImage(file=r'res\neuron\neuron.png')
-            self.neuron_image = PhotoImage(file=str(self.NEURON_IMG_PATH).format(*slides))
-            self.graph_image = PhotoImage(file=str(self.GRAPH_IMG_PATH).format(*slides))
-            # print(slides)
-        except:
-            self.neuron_canvas.create_line(0, 0, self.NEURON_SIZE, self.NEURON_SIZE, fill='white')
-            self.neuron_canvas.create_line(0, self.NEURON_SIZE, self.NEURON_SIZE, 0, fill='white')
-        else:
-            self.neuron_canvas.create_image(0, 0, anchor=NW, image=self.neuron_image)
-            self.neuron_canvas.create_image(0, 256, anchor=NW, image=self.graph_image)
-        finally:
-            self.neuron_canvas.pack()
+        self.reload_button = Button(self, text='Reload', command=self.load_media)
+        self.reload_button.pack(in_=self, fill=BOTH, **self.PADS)
+
+        self.swap_screen_button = Button(self, text='Swap Screen', command=self.neuron.swap_screen)
+        self.swap_screen_button.pack(in_=self, fill=BOTH, **self.PADS)
+
+        self.controls_frame = LabelFrame(self, text='Controls:')
+        self.controls_frame.pack(**self.PADS)
+
+        self.slides_frame = Frame(self)
+        self.slides_frame.pack(in_=self.controls_frame, **self.PADS)
+
+        self.slides = []
+        for name, size in self.SLIDES:
+            slide = Slide(self, size=size, command=self.slide_command, text=name)
+            slide.pack(in_=self.slides_frame, side=LEFT, fill=Y, **self.PADS)
+            self.slides.append(slide)
+
+        self.decide_button = Button(self, text='Decide!', command=self.decide_command)
+        self.decide_button.pack(in_=self.controls_frame, fill=BOTH, **self.PADS)
+
+        self.gifs = []
+        self.load_media()
+        self.gif_player = GifPlayer(self.neuron)
+        self.decide_command()
+
+    def load_media(self):
+        self.gifs.clear()
+        for i in range(self.SLIDES[0][1]):
+            for j in range(self.SLIDES[1][1]):
+                self.gifs.append(Gif(str(self.GIF_PATH).format(i, j)))
+
+    def decide_command(self):
+        if self.gif_player.play_count:
+            return
+        self.gif_player.play(
+            self.gifs[self.slides[1].value.get() + self.slides[0].value.get() * self.SLIDES[1][1]])
+
+    def slide_command(self, *_, **__):
+        print('slide_command')
+
+
+class NeuronWindow(Frame):
+    DISPLAY_SIZE = 448
 
     def __init__(self, master=None, cnf={}, **kw):
         Frame.__init__(self, master, cnf, bd=0, **kw)
@@ -40,60 +74,34 @@ class NeuronWindow(Frame):
         self.master.overrideredirect(True)
         self.master.attributes('-topmost', True)
 
-        self.neuron_canvas = Canvas(self, bg='black', height=self.NEURON_SIZE, width=self.NEURON_SIZE)
-        self.neuron_canvas.pack(fill=BOTH)
+        # exit on escape key press
+        self.bind_all("<Escape>", self.exit)
 
-        self.controls_frame = LabelFrame(self, text='Controls:')
-        self.controls_frame.pack(**self.PADS, side=LEFT)
+        self.canvas = Canvas(self, bg='black', height=self.DISPLAY_SIZE,
+                             width=self.DISPLAY_SIZE, highlightthickness=0)
+        self.canvas.pack(fill=BOTH)
 
-        self.slides_frame = Frame(self)
-        self.slides_frame.pack(in_=self.controls_frame, **self.PADS)
+        # show controls window
+        self.controls_window = ControlsWindow(self.master, neuron=self)
 
-        self.slides = []
-        for name, size in self.SLIDES:
-            slide = Slide(self, size=size, text=name)
-            slide.pack(in_=self.slides_frame, side=LEFT, fill=Y, **self.PADS)
-            self.slides.append(slide)
+    def swap_screen(self):
+        # get [width, height, left, top] of window
+        rect = [int(i) for i in self.master.winfo_geometry().replace('x', '+').split('+')]
+        rect[2] = self.master.winfo_screenwidth() - rect[2]
+        # set [width, height, left, top] of window
+        self.master.geometry("{}x{}+{}+{}".format(*rect))
 
-        self.decide_button = Button(self, text='Decide!', command=self.button_operation)
-        self.decide_button.pack(in_=self.controls_frame, fill=BOTH, **self.PADS)
-
-        self.quit_btn = Button(self, text='Quit', bg='red', command=self.master.destroy)
-        self.quit_btn.pack(in_=self, fill=BOTH, **self.PADS)
-
-        self.gifs = []
-        for i in range(self.SLIDES[0][1]):
-            for j in range(self.SLIDES[1][1]):
-                self.gifs.append(Gif(str(self.GIF_PATH).format(i, j)))
-
-        self.playing = False
-        self.current_gif_frame = 0
-        self.current_gif = self.gifs[self.current_gif_frame]
-        self.gif_label = Label(self.neuron_canvas, bg='black', image=self.current_gif.frames[0])
-        self.gif_label.pack()
-
-    def button_operation(self):
-        if self.playing:
+    def exit(self, *_, **__):
+        if hasattr(self, '_exit'):
             return
-        self.current_gif = self.gifs[self.slides[1].value.get() + self.slides[0].value.get() * self.SLIDES[1][1]]
-        self.play()
-
-    def play(self):
-        self.playing = True
-        self.gif_label.config(image=self.current_gif.frames[self.current_gif_frame])
-
-        self.current_gif_frame += 1
-        if self.current_gif_frame == len(self.current_gif.frames):
-            self.current_gif_frame = 0
-            self.playing = False
-        else:
-            self.after(self.current_gif.delay, self.play)
+        setattr(self, '_exit', True)
+        print('exit')
+        self.master.quit()
 
 
 def main():
     root = Tk()
     neuron = NeuronWindow(root)
-    neuron.pack()
     root.mainloop()
 
 
