@@ -12,16 +12,15 @@ class Gif(object):
         try:
             animation = Image.open(file_name)
         except FileNotFoundError:
+            self.delay = 0
             image = Image.new('RGB', (self.DISPLAY_SIZE, self.DISPLAY_SIZE))
             draw = ImageDraw.Draw(image)
             for i in (0, self.DISPLAY_SIZE):
                 draw.line((0, i, self.DISPLAY_SIZE, self.DISPLAY_SIZE - i),
                           fill=self.CROSS_COLOR, width=self.CROSS_WIDTH)
             seq = [image]
-            self.delay = 0
         else:
             self.delay = animation.info.get('duration', 100)
-
             seq = []
             while 1:
                 seq.append(animation.copy())
@@ -29,7 +28,6 @@ class Gif(object):
                     animation.seek(len(seq))
                 except EOFError:
                     break
-
             animation.close()
 
         # draw frames
@@ -48,11 +46,13 @@ class GifPlayer(object):
         self.play_count = 0
         self.current_frame = 0
         self.current_gif = None
+        self.after_cb = None
 
     def stop(self):
         self.play_count = 0
 
-    def play(self, gif, times=1):
+    def play(self, gif, times=1, after_cb=None):
+        self.after_cb = after_cb
         self.stop()
         self.current_frame = 0
         self.current_gif = gif
@@ -70,5 +70,8 @@ class GifPlayer(object):
             if self.play_count is not None:
                 self.play_count -= 1
                 if self.play_count == 0:
+                    if self.after_cb is not None:
+                        self.after_cb()
+                        self.after_cb = None
                     return
         self.after(self.current_gif.delay, self._play)
