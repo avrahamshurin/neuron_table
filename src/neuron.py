@@ -21,6 +21,7 @@ class ControlsWindow(Toplevel):
     RES_PATH = BASIC_PATH / 'res'
     IMAGES_PATH = RES_PATH / 'images/{}_{}.png'
     ANIMATIONS_PATH = RES_PATH / 'animations/gif_{}_{}.gif'
+    VIDEO_PATH = RES_PATH / 'video/{}_{}.mp4'
     SLIDES = [['Desire:', 4], ['Fear:', 3]]
     PADS = {'padx': 5, 'pady': 5}
     LEFT_OFFSET = 10
@@ -57,6 +58,7 @@ class ControlsWindow(Toplevel):
 
         self.images = []
         self.animations = []
+        self.videos = []
         self.load_media()
         self.gif_player = GifPlayer(self.neuron)
         self.decide_command()
@@ -89,10 +91,12 @@ class ControlsWindow(Toplevel):
     def load_media(self):
         self.images.clear()
         self.animations.clear()
+        self.videos.clear()
         for i in range(self.SLIDES[0][1]):
             for j in range(self.SLIDES[1][1]):
                 self.images.append(Gif(str(self.IMAGES_PATH).format(i, j)))
                 self.animations.append(Gif(str(self.ANIMATIONS_PATH).format(i, j)))
+                self.videos.append(str(self.VIDEO_PATH).format(i, j))
 
     def decide_command(self):
         if self.gif_player.play_count:
@@ -104,6 +108,7 @@ class ControlsWindow(Toplevel):
         if self.gif_player.play_count:
             return
         self.gif_player.play(self.images[Slide.get_values()])
+        os.popen(self.videos[Slide.get_values()])
 
 
 class NeuronWindow(Frame):
