@@ -1,5 +1,7 @@
 import sys
 import os.path
+import vlc
+
 
 # add BASIC_PATH (GitHub clones path) to PYTHONPATH
 BASIC_PATH = os.path.abspath(os.path.dirname(os.path.dirname(
@@ -58,6 +60,8 @@ class ControlsWindow(Toplevel):
 
         self.images = []
         self.animations = []
+        self.vlc_instance = vlc.Instance()
+        self.player = self.vlc_instance.media_player_new()
         self.videos = []
         self.load_media()
         self.gif_player = GifPlayer(self.neuron)
@@ -96,8 +100,8 @@ class ControlsWindow(Toplevel):
             for j in range(self.SLIDES[1][1]):
                 self.images.append(Gif(str(self.IMAGES_PATH).format(i, j)))
                 self.animations.append(Gif(str(self.ANIMATIONS_PATH).format(i, j)))
-                self.videos.append(str(self.VIDEO_PATH).format(i, j))
-
+                #self.videos.append(str(self.VIDEO_PATH).format(i, j))
+                self.videos.append(self.vlc_instance.media_new(str(self.VIDEO_PATH).format(i, j)))
     def decide_command(self):
         if self.gif_player.play_count:
             return
@@ -108,7 +112,10 @@ class ControlsWindow(Toplevel):
         if self.gif_player.play_count:
             return
         self.gif_player.play(self.images[Slide.get_values()])
-        os.popen(self.videos[Slide.get_values()])
+        #os.popen(self.videos[Slide.get_values()])
+        self.player.set_media(self.videos[Slide.get_values()])
+        self.player.play()
+
 
 
 class NeuronWindow(Frame):
