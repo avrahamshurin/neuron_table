@@ -43,6 +43,9 @@ class ControlsWindow(Toplevel):
         self.swap_screen_button = Button(self, text='Swap Screen', command=self.neuron.swap_screen)
         self.swap_screen_button.pack(in_=self, fill=BOTH, **self.PADS)
 
+        self.full_screen_button = Button(self, text='Full Screen', command=self.set_full_screen)
+        self.full_screen_button.pack(in_=self, fill=BOTH, **self.PADS)
+
         self.controls_frame = LabelFrame(self, text='Controls:')
         self.controls_frame.pack(**self.PADS)
 
@@ -58,6 +61,7 @@ class ControlsWindow(Toplevel):
         self.decide_button = Button(self, text='Decide!', command=self.decide_command)
         self.decide_button.pack(in_=self.controls_frame, fill=BOTH, **self.PADS)
 
+        self.fullscreen = FALSE
         self.images = []
         self.animations = []
         self.vlc_instance = vlc.Instance()
@@ -115,6 +119,12 @@ class ControlsWindow(Toplevel):
         #os.popen(self.videos[Slide.get_values()])
         self.player.set_media(self.videos[Slide.get_values()])
         self.player.play()
+
+    def set_full_screen(self):
+        self.fullscreen = not self.fullscreen
+        self.player.set_fullscreen(self.fullscreen)
+
+
 
 
 
